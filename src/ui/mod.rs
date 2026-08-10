@@ -1,4 +1,4 @@
-use ratatui::layout::{Alignment, Layout as RatatuiLayout, Rect};
+use ratatui::layout::{Alignment, Constraint, Layout as RatatuiLayout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::Span;
 use ratatui::widgets::{Block, Paragraph};
@@ -15,6 +15,7 @@ pub mod header;
 pub mod layout;
 pub mod lines;
 pub mod memory;
+pub mod processes;
 
 pub fn render(frame: &mut Frame, app: &App) {
     let layout = Layout::new(frame.area());
@@ -26,9 +27,17 @@ pub fn render(frame: &mut Frame, app: &App) {
 }
 
 fn render_body(frame: &mut Frame, area: Rect, app: &App) {
+    let [top, processes] =
+        RatatuiLayout::vertical([Constraint::Percentage(45), Constraint::Percentage(55)])
+            .areas(area);
+    render_panels(frame, top, app);
+    processes::render(frame, processes, &app.process_list, app.selection);
+}
+
+fn render_panels(frame: &mut Frame, area: Rect, app: &App) {
     let [cpu, memory] = RatatuiLayout::horizontal([
-        ratatui::layout::Constraint::Percentage(55),
-        ratatui::layout::Constraint::Percentage(45),
+        Constraint::Percentage(55),
+        Constraint::Percentage(45),
     ])
     .areas(area);
     match &app.cpu_usage {
@@ -50,6 +59,9 @@ fn render_placeholder(frame: &mut Frame, area: Rect, title: &str) {
 }
 
 fn render_footer(frame: &mut Frame, area: Rect) {
-    let hint = Span::styled(" q Quit ", Style::default().add_modifier(Modifier::DIM));
+    let hint = Span::styled(
+        " ↑↓ Select   c CPU   m Memory   p PID   a Name   q Quit ",
+        Style::default().add_modifier(Modifier::DIM),
+    );
     frame.render_widget(hint, area);
 }
