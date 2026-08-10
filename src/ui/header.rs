@@ -4,12 +4,23 @@ use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Widget;
 
-pub struct Header;
+pub struct Header {
+    cpu: Option<f64>,
+    mem: Option<f64>,
+}
+
+impl Header {
+    pub fn new(cpu: Option<f64>, mem: Option<f64>) -> Self {
+        Self { cpu, mem }
+    }
+}
 
 impl Widget for Header {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let left = " macmon ";
-        let right = "CPU --%  RAM --% ";
+        let cpu = self.cpu.map(|v| format!("{v:.0}%")).unwrap_or_else(|| "--".into());
+        let mem = self.mem.map(|v| format!("{v:.0}%")).unwrap_or_else(|| "--".into());
+        let right = format!("CPU {cpu}  RAM {mem} ");
         let padding = area
             .width
             .saturating_sub((left.len() + right.len()) as u16);
