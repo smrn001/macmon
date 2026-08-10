@@ -7,7 +7,7 @@ const TICK_RATE: Duration = Duration::from_millis(250);
 
 pub enum Event {
     Key(KeyEvent),
-    Resize(u16, u16),
+    Resize,
     Tick,
 }
 
@@ -17,7 +17,7 @@ pub fn read() -> io::Result<Event> {
     }
     match event::read()? {
         CrosstermEvent::Key(key) if key.kind == KeyEventKind::Press => Ok(Event::Key(key)),
-        CrosstermEvent::Resize(width, height) => Ok(Event::Resize(width, height)),
+        CrosstermEvent::Resize(_, _) => Ok(Event::Resize),
         _ => Ok(Event::Tick),
     }
 }

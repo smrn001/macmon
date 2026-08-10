@@ -17,7 +17,7 @@ impl App {
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
         while !self.should_quit {
             terminal.draw(|frame| self.render(frame))?;
-            self.handle_events()?;
+            self.handle_events(terminal)?;
         }
         Ok(())
     }
@@ -26,10 +26,10 @@ impl App {
         crate::ui::render(frame);
     }
 
-    fn handle_events(&mut self) -> io::Result<()> {
+    fn handle_events(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
         match event::read()? {
             Event::Key(key) => self.on_key(key),
-            Event::Resize(_, _) => {}
+            Event::Resize => terminal.clear()?,
             Event::Tick => {}
         }
         Ok(())

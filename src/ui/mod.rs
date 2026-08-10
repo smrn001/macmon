@@ -1,8 +1,8 @@
-use ratatui::layout::Rect;
+use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::Span;
 use ratatui::widgets::{Block, Paragraph};
-use ratatui::{Alignment, Frame, VerticalAlignment};
+use ratatui::Frame;
 
 use self::header::Header;
 use self::layout::Layout;
@@ -21,7 +21,6 @@ fn render_body(frame: &mut Frame, area: Rect) {
     let text = "Monitoring panels arrive in Milestone 2\n\nCPU · Memory · Processes · Network · Disk";
     let paragraph = Paragraph::new(text)
         .alignment(Alignment::Center)
-        .vertical_alignment(VerticalAlignment::Middle)
         .block(Block::bordered().title(" MACMON "));
     frame.render_widget(paragraph, area);
 }
