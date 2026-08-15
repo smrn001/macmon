@@ -4,12 +4,13 @@ use ratatui::text::Span;
 use ratatui::widgets::{Block, Paragraph};
 use ratatui::Frame;
 
-use crate::app::App;
+use crate::app::{App, View};
 
 use self::header::Header;
 use self::layout::Layout;
 
 pub mod cpu;
+pub mod details;
 pub mod format;
 pub mod header;
 pub mod layout;
@@ -22,8 +23,22 @@ pub fn render(frame: &mut Frame, app: &App) {
     let cpu = app.cpu_usage.as_ref().map(|u| u.total);
     let mem = app.memory.as_ref().map(|m| m.used_ratio() * 100.0);
     frame.render_widget(Header::new(cpu, mem), layout.header);
-    render_body(frame, layout.body, app);
-    render_footer(frame, layout.footer);
+    match &app.view {
+        View::List => {
+            render_body(frame, layout.body, app);
+            render_footer(frame, layout.footer);
+        }
+        View::Details {
+            details,
+            confirm_kill,
+        } => {
+            details::render(frame, layout.body, details);
+            render_footer_details(frame, layout.footer);
+            if *confirm_kill {
+                details::render_confirm(frame, frame.area(), details);
+            }
+        }
+    }
 }
 
 fn render_body(frame: &mut Frame, area: Rect, app: &App) {
@@ -60,7 +75,15 @@ fn render_placeholder(frame: &mut Frame, area: Rect, title: &str) {
 
 fn render_footer(frame: &mut Frame, area: Rect) {
     let hint = Span::styled(
-        " ↑↓ Select   c CPU   m Memory   p PID   a Name   q Quit ",
+        " ↑↓ Select   c CPU   m Memory   p PID   a Name   Enter Details   q Quit ",
+        Style::default().add_modifier(Modifier::DIM),
+    );
+    frame.render_widget(hint, area);
+}
+
+fn render_footer_details(frame: &mut Frame, area: Rect) {
+    let hint = Span::styled(
+        " k Kill   b Back   q Quit ",
         Style::default().add_modifier(Modifier::DIM),
     );
     frame.render_widget(hint, area);

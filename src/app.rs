@@ -7,13 +7,21 @@ use ratatui::{DefaultTerminal, Frame};
 use crate::event::{self, Event};
 use crate::models::cpu::CpuUsage;
 use crate::models::memory::MemoryInfo;
-use crate::models::process::{ProcessInfo, SortBy};
+use crate::models::process::{ProcessDetails, ProcessInfo, SortBy};
 use crate::system::cpu::CpuSampler;
 use crate::system::processes::ProcessSampler;
 
 const CPU_REFRESH: Duration = Duration::from_millis(500);
 const MEMORY_REFRESH: Duration = Duration::from_millis(1000);
 const PROCESS_REFRESH: Duration = Duration::from_millis(1000);
+
+pub(crate) enum View {
+    List,
+    Details {
+        details: ProcessDetails,
+        confirm_kill: bool,
+    },
+}
 
 pub struct App {
     should_quit: bool,
@@ -27,6 +35,7 @@ pub struct App {
     pub(crate) selection: usize,
     pub(crate) sort_by: SortBy,
     last_processes: Instant,
+    pub(crate) view: View,
 }
 
 impl App {
@@ -43,6 +52,7 @@ impl App {
             selection: 0,
             sort_by: SortBy::Cpu,
             last_processes: Instant::now(),
+            view: View::List,
         }
     }
 
@@ -81,6 +91,12 @@ impl App {
                 self.process_list = list;
                 self.clamp_selection();
             }
+            if let View::Details { details, .. } = &mut self.view {
+                if let Some(p) = self.process_list.iter().find(|p| p.pid == details.pid) {
+                    details.cpu = p.cpu;
+                    details.memory = p.memory;
+                }
+            }
             self.last_processes = now;
         }
     }
@@ -118,6 +134,18 @@ impl App {
     }
 
     fn on_key(&mut self, key: crossterm::event::KeyEvent) {
+        let in_details = matches!(self.view, View::Details { .. });
+        let in_confirm = matches!(self.view, View::Details { confirm_kill: true, .. });
+        if in_confirm {
+            self.on_key_confirm(key);
+        } else if in_details {
+            self.on_key_details(key);
+        } else {
+            self.on_key_list(key);
+        }
+    }
+
+    fn on_key_list(&mut self, key: crossterm::event::KeyEvent) {
         match key.code {
             KeyCode::Char('q') | KeyCode::Esc => self.should_quit = true,
             KeyCode::Up | KeyCode::Char('k') => self.move_selection(-1),
@@ -126,7 +154,55 @@ impl App {
             KeyCode::Char('m') => self.set_sort(SortBy::Memory),
             KeyCode::Char('p') => self.set_sort(SortBy::Pid),
             KeyCode::Char('a') => self.set_sort(SortBy::Name),
+            KeyCode::Enter => self.open_details(),
             _ => {}
         }
+    }
+
+    fn on_key_details(&mut self, key: crossterm::event::KeyEvent) {
+        match key.code {
+            KeyCode::Char('b') | KeyCode::Esc => self.view = View::List,
+            KeyCode::Char('k') => {
+                if let View::Details { confirm_kill, .. } = &mut self.view {
+                    *confirm_kill = true;
+                }
+            }
+            KeyCode::Char('q') => self.should_quit = true,
+            _ => {}
+        }
+    }
+
+    fn on_key_confirm(&mut self, key: crossterm::event::KeyEvent) {
+        let pid = match &self.view {
+            View::Details { details, .. } => details.pid,
+            _ => return,
+        };
+        match key.code {
+            KeyCode::Char('y') => {
+                crate::system::processes::kill(pid, libc::SIGTERM);
+                self.view = View::List;
+            }
+            KeyCode::Char('n') | KeyCode::Esc => {
+                if let View::Details { confirm_kill, .. } = &mut self.view {
+                    *confirm_kill = false;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn open_details(&mut self) {
+        let Some(process) = self.process_list.get(self.selection) else {
+            return;
+        };
+        let Some(mut details) = crate::system::processes::details(process.pid) else {
+            return;
+        };
+        details.cpu = process.cpu;
+        details.memory = process.memory;
+        self.view = View::Details {
+            details,
+            confirm_kill: false,
+        };
     }
 }

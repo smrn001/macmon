@@ -1,10 +1,12 @@
+use std::ffi::CStr;
 use std::time::Instant;
 
-use libc::{proc_listpids, proc_pidinfo, proc_taskallinfo, PROC_PIDTASKALLINFO};
+use libc::{proc_listpids, proc_pidinfo, proc_pidpath, proc_taskallinfo, PROC_PIDTASKALLINFO};
 
-use crate::models::process::ProcessInfo;
+use crate::models::process::{ProcessDetails, ProcessInfo};
 
 const MAX_PIDS: usize = 4096;
+const MAX_PATH: u32 = 4096;
 const PROC_ALL_PIDS: u32 = 1;
 
 pub struct ProcessSampler {
@@ -112,6 +114,71 @@ fn bytes_to_string(bytes: &[libc::c_char]) -> String {
     };
     let end = raw.iter().position(|&b| b == 0).unwrap_or(raw.len());
     String::from_utf8_lossy(&raw[..end]).into_owned()
+}
+
+pub fn details(pid: i32) -> Option<ProcessDetails> {
+    unsafe {
+        let mut info = std::mem::zeroed::<proc_taskallinfo>();
+        let size = std::mem::size_of::<proc_taskallinfo>();
+        let result = proc_pidinfo(
+            pid,
+            PROC_PIDTASKALLINFO,
+            0,
+            &mut info as *mut proc_taskallinfo as *mut libc::c_void,
+            size as libc::c_int,
+        );
+        if result as usize != size {
+            return None;
+        }
+
+        let pbsd = info.pbsd;
+        let ptinfo = info.ptinfo;
+        Some(ProcessDetails {
+            pid,
+            name: bytes_to_string(&pbsd.pbi_name),
+            parent: pbsd.pbi_ppid as i32,
+            user: username(pbsd.pbi_uid),
+            state: state_char(pbsd.pbi_status),
+            cpu: 0.0,
+            memory: ptinfo.pti_resident_size,
+            threads: ptinfo.pti_threadnum,
+            executable: executable_path(pid),
+        })
+    }
+}
+
+pub fn kill(pid: i32, signal: i32) -> bool {
+    unsafe { libc::kill(pid, signal) == 0 }
+}
+
+fn executable_path(pid: i32) -> String {
+    unsafe {
+        let mut path = [0u8; MAX_PATH as usize];
+        let len = proc_pidpath(pid, path.as_mut_ptr() as *mut libc::c_void, MAX_PATH);
+        if len <= 0 {
+            return String::new();
+        }
+        let end = path[..len as usize]
+            .iter()
+            .position(|&b| b == 0)
+            .unwrap_or(len as usize);
+        String::from_utf8_lossy(&path[..end]).into_owned()
+    }
+}
+
+fn username(uid: libc::uid_t) -> String {
+    unsafe {
+        let pw = libc::getpwuid(uid);
+        if pw.is_null() {
+            return uid.to_string();
+        }
+        let name = CStr::from_ptr((*pw).pw_name).to_string_lossy().into_owned();
+        if name.is_empty() {
+            uid.to_string()
+        } else {
+            name
+        }
+    }
 }
 
 fn state_char(status: u32) -> char {

@@ -16,3 +16,16 @@ pub enum SortBy {
     Pid,
     Name,
 }
+
+#[derive(Clone, Debug)]
+pub struct ProcessDetails {
+    pub pid: i32,
+    pub name: String,
+    pub parent: i32,
+    pub user: String,
+    pub state: char,
+    pub cpu: f64,
+    pub memory: u64,
+    pub threads: i32,
+    pub executable: String,
+}
