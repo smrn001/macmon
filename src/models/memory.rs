@@ -1,3 +1,4 @@
+#[derive(PartialEq)]
 pub struct MemoryInfo {
     pub physical: u64,
     pub free: u64,

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::ffi::CStr;
 use std::time::Instant;
 
@@ -10,14 +11,14 @@ const MAX_PATH: u32 = 4096;
 const PROC_ALL_PIDS: u32 = 1;
 
 pub struct ProcessSampler {
-    previous: Vec<(i32, u64)>,
+    previous: HashMap<i32, u64>,
     last_sample: Option<Instant>,
 }
 
 impl ProcessSampler {
     pub fn new() -> Self {
         Self {
-            previous: Vec::new(),
+            previous: HashMap::new(),
             last_sample: None,
         }
     }
@@ -33,15 +34,16 @@ impl ProcessSampler {
         for proc in &mut procs {
             let previous = self
                 .previous
-                .iter()
-                .find(|(pid, _)| *pid == proc.pid)
-                .map(|(_, time)| *time)
+                .get(&proc.pid)
+                .copied()
                 .unwrap_or(proc.cpu_time);
             let delta = proc.cpu_time.saturating_sub(previous);
             proc.cpu = (delta as f64 / 1e9) / elapsed * 100.0;
         }
 
-        self.previous = procs.iter().map(|p| (p.pid, p.cpu_time)).collect();
+        // Reuse the map's existing capacity instead of reallocating each cycle.
+        self.previous.clear();
+        self.previous.extend(procs.iter().map(|p| (p.pid, p.cpu_time)));
         self.last_sample = Some(now);
         Some(procs)
     }

@@ -76,12 +76,22 @@ impl App {
 
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
         self.refresh();
+        let mut dirty = true;
         while !self.should_quit {
-            terminal.draw(|frame| self.render(frame))?;
+            if dirty {
+                terminal.draw(|frame| self.render(frame))?;
+                dirty = false;
+            }
             match event::read()? {
-                Event::Key(key) => self.on_key(key),
-                Event::Resize => terminal.clear()?,
-                Event::Tick => self.refresh(),
+                Event::Key(key) => {
+                    self.on_key(key);
+                    dirty = true;
+                }
+                Event::Resize => {
+                    terminal.clear()?;
+                    dirty = true;
+                }
+                Event::Tick => dirty |= self.refresh(),
             }
         }
         Ok(())
@@ -91,24 +101,36 @@ impl App {
         crate::ui::render(frame, self);
     }
 
-    fn refresh(&mut self) {
+    fn refresh(&mut self) -> bool {
         let now = Instant::now();
+        let mut updated = false;
         if now.duration_since(self.last_cpu) >= CPU_REFRESH {
             if let Some(usage) = self.cpu.sample() {
                 self.cpu_usage = Some(usage);
+                updated = true;
             }
             self.last_cpu = now;
         }
         if now.duration_since(self.last_memory) >= MEMORY_REFRESH {
+            let previous = self.memory.take();
             self.memory = crate::system::memory::sample();
+            if self.memory != previous {
+                updated = true;
+            }
             self.last_memory = now;
         }
         if now.duration_since(self.last_network) >= NETWORK_REFRESH {
-            self.network_usage = self.network.sample();
+            if let Some(usage) = self.network.sample() {
+                self.network_usage = Some(usage);
+                updated = true;
+            }
             self.last_network = now;
         }
         if now.duration_since(self.last_disk) >= DISK_REFRESH {
-            self.disk_info = self.disk.sample();
+            if let Some(info) = self.disk.sample() {
+                self.disk_info = Some(info);
+                updated = true;
+            }
             self.last_disk = now;
         }
         if now.duration_since(self.last_processes) >= PROCESS_REFRESH {
@@ -116,15 +138,20 @@ impl App {
                 Self::sort_processes(&mut list, self.sort_by);
                 self.process_list = list;
                 self.clamp_selection();
+                updated = true;
             }
             if let View::Details { details, .. } = &mut self.view {
                 if let Some(p) = self.process_list.iter().find(|p| p.pid == details.pid) {
-                    details.cpu = p.cpu;
-                    details.memory = p.memory;
+                    if details.cpu != p.cpu || details.memory != p.memory {
+                        details.cpu = p.cpu;
+                        details.memory = p.memory;
+                        updated = true;
+                    }
                 }
             }
             self.last_processes = now;
         }
+        updated
     }
 
     fn sort_processes(list: &mut [ProcessInfo], sort_by: SortBy) {
