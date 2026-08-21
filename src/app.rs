@@ -6,14 +6,20 @@ use ratatui::{DefaultTerminal, Frame};
 
 use crate::event::{self, Event};
 use crate::models::cpu::CpuUsage;
+use crate::models::disk::DiskInfo;
 use crate::models::memory::MemoryInfo;
+use crate::models::network::NetworkUsage;
 use crate::models::process::{ProcessDetails, ProcessInfo, SortBy};
 use crate::system::cpu::CpuSampler;
+use crate::system::disk::DiskSampler;
+use crate::system::network::NetworkSampler;
 use crate::system::processes::ProcessSampler;
 
 const CPU_REFRESH: Duration = Duration::from_millis(500);
 const MEMORY_REFRESH: Duration = Duration::from_millis(1000);
 const PROCESS_REFRESH: Duration = Duration::from_millis(1000);
+const NETWORK_REFRESH: Duration = Duration::from_millis(1000);
+const DISK_REFRESH: Duration = Duration::from_millis(1000);
 
 pub(crate) enum View {
     List,
@@ -30,6 +36,12 @@ pub struct App {
     pub(crate) memory: Option<MemoryInfo>,
     last_cpu: Instant,
     last_memory: Instant,
+    network: NetworkSampler,
+    pub(crate) network_usage: Option<NetworkUsage>,
+    last_network: Instant,
+    disk: DiskSampler,
+    pub(crate) disk_info: Option<DiskInfo>,
+    last_disk: Instant,
     processes: ProcessSampler,
     pub(crate) process_list: Vec<ProcessInfo>,
     pub(crate) selection: usize,
@@ -47,6 +59,12 @@ impl App {
             memory: None,
             last_cpu: Instant::now(),
             last_memory: Instant::now(),
+            network: NetworkSampler::new(),
+            network_usage: None,
+            last_network: Instant::now(),
+            disk: DiskSampler::new(),
+            disk_info: None,
+            last_disk: Instant::now(),
             processes: ProcessSampler::new(),
             process_list: Vec::new(),
             selection: 0,
@@ -84,6 +102,14 @@ impl App {
         if now.duration_since(self.last_memory) >= MEMORY_REFRESH {
             self.memory = crate::system::memory::sample();
             self.last_memory = now;
+        }
+        if now.duration_since(self.last_network) >= NETWORK_REFRESH {
+            self.network_usage = self.network.sample();
+            self.last_network = now;
+        }
+        if now.duration_since(self.last_disk) >= DISK_REFRESH {
+            self.disk_info = self.disk.sample();
+            self.last_disk = now;
         }
         if now.duration_since(self.last_processes) >= PROCESS_REFRESH {
             if let Some(mut list) = self.processes.sample() {

@@ -11,11 +11,13 @@ use self::layout::Layout;
 
 pub mod cpu;
 pub mod details;
+pub mod disk;
 pub mod format;
 pub mod header;
 pub mod layout;
 pub mod lines;
 pub mod memory;
+pub mod network;
 pub mod processes;
 
 pub fn render(frame: &mut Frame, app: &App) {
@@ -42,19 +44,23 @@ pub fn render(frame: &mut Frame, app: &App) {
 }
 
 fn render_body(frame: &mut Frame, area: Rect, app: &App) {
-    let [top, processes] =
-        RatatuiLayout::vertical([Constraint::Percentage(45), Constraint::Percentage(55)])
+    let [panels, processes] =
+        RatatuiLayout::vertical([Constraint::Percentage(48), Constraint::Percentage(52)])
             .areas(area);
-    render_panels(frame, top, app);
-    processes::render(frame, processes, &app.process_list, app.selection);
-}
-
-fn render_panels(frame: &mut Frame, area: Rect, app: &App) {
+    let [top, bottom] =
+        RatatuiLayout::vertical([Constraint::Ratio(1, 2), Constraint::Ratio(1, 2)])
+            .areas(panels);
     let [cpu, memory] = RatatuiLayout::horizontal([
         Constraint::Percentage(55),
         Constraint::Percentage(45),
     ])
-    .areas(area);
+    .areas(top);
+    let [network, disk] = RatatuiLayout::horizontal([
+        Constraint::Percentage(55),
+        Constraint::Percentage(45),
+    ])
+    .areas(bottom);
+
     match &app.cpu_usage {
         Some(usage) => frame.render_widget(cpu::CpuPanel::new(usage), cpu),
         None => render_placeholder(frame, cpu, " CPU "),
@@ -63,6 +69,15 @@ fn render_panels(frame: &mut Frame, area: Rect, app: &App) {
         Some(info) => frame.render_widget(memory::MemoryPanel::new(info), memory),
         None => render_placeholder(frame, memory, " MEMORY "),
     }
+    match &app.network_usage {
+        Some(usage) => frame.render_widget(network::NetworkPanel::new(usage), network),
+        None => render_placeholder(frame, network, " NETWORK "),
+    }
+    match &app.disk_info {
+        Some(info) => frame.render_widget(disk::DiskPanel::new(info), disk),
+        None => render_placeholder(frame, disk, " DISK "),
+    }
+    processes::render(frame, processes, &app.process_list, app.selection);
 }
 
 fn render_placeholder(frame: &mut Frame, area: Rect, title: &str) {
