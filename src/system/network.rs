@@ -1,7 +1,7 @@
-use std::time::Instant;
 use std::ptr;
+use std::time::Instant;
 
-use libc::{freeifaddrs, getifaddrs, if_data, ifaddrs, AF_LINK, IFF_LOOPBACK};
+use libc::{AF_LINK, IFF_LOOPBACK, freeifaddrs, getifaddrs, if_data, ifaddrs};
 
 use crate::models::network::NetworkUsage;
 
@@ -27,10 +27,7 @@ impl NetworkSampler {
             },
             Some((prev_rx, prev_tx, prev_at)) => {
                 let elapsed = now.duration_since(prev_at).as_secs_f64();
-                let (drx, dtx) = (
-                    rx.saturating_sub(prev_rx),
-                    tx.saturating_sub(prev_tx),
-                );
+                let (drx, dtx) = (rx.saturating_sub(prev_rx), tx.saturating_sub(prev_tx));
                 let rate = |delta: u64| {
                     if elapsed > 0.0 {
                         delta as f64 / elapsed
@@ -70,8 +67,7 @@ fn totals() -> Option<(u64, u64)> {
         let mut current = list;
         while !current.is_null() {
             let ifa = &*current;
-            let is_link = !ifa.ifa_addr.is_null()
-                && (*ifa.ifa_addr).sa_family == AF_LINK as u8;
+            let is_link = !ifa.ifa_addr.is_null() && (*ifa.ifa_addr).sa_family == AF_LINK as u8;
             let is_loopback = ifa.ifa_flags & IFF_LOOPBACK as u32 != 0;
             if is_link && !is_loopback && !ifa.ifa_data.is_null() {
                 let data = &*(ifa.ifa_data as *const if_data);

@@ -3,6 +3,12 @@ name = "macmon"
 version = "0.1.0"
 edition = "2024"
 description = "Ultra-lightweight system monitor for macOS"
+authors = ["smrn001 <samir.niroula001@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/smrn001/macmon"
+homepage = "https://github.com/smrn001/macmon"
+keywords = ["macos", "monitor", "tui", "system", "processes"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 crossterm = "0.29.0"

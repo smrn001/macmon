@@ -106,8 +106,10 @@ unsafe extern "C" {
         c_str: *const c_char,
         encoding: u32,
     ) -> CFStringRef;
-    fn CFDictionaryGetValue(dictionary: CFDictionaryRef, key: *const std::ffi::c_void)
-        -> *const std::ffi::c_void;
+    fn CFDictionaryGetValue(
+        dictionary: CFDictionaryRef,
+        key: *const std::ffi::c_void,
+    ) -> *const std::ffi::c_void;
     fn CFNumberGetValue(
         number: CFNumberRef,
         the_type: isize,
@@ -119,7 +121,7 @@ unsafe extern "C" {
 /// Sums read/write byte counters across all block storage drivers.
 fn io_totals() -> Option<(u64, u64)> {
     unsafe {
-        let matching = IOServiceMatching(b"IOBlockStorageDriver\0".as_ptr() as *const c_char);
+        let matching = IOServiceMatching(c"IOBlockStorageDriver".as_ptr());
         if matching.is_null() {
             return None;
         }

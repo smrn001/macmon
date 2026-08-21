@@ -140,14 +140,13 @@ impl App {
                 self.clamp_selection();
                 updated = true;
             }
-            if let View::Details { details, .. } = &mut self.view {
-                if let Some(p) = self.process_list.iter().find(|p| p.pid == details.pid) {
-                    if details.cpu != p.cpu || details.memory != p.memory {
-                        details.cpu = p.cpu;
-                        details.memory = p.memory;
-                        updated = true;
-                    }
-                }
+            if let View::Details { details, .. } = &mut self.view
+                && let Some(p) = self.process_list.iter().find(|p| p.pid == details.pid)
+                && (details.cpu != p.cpu || details.memory != p.memory)
+            {
+                details.cpu = p.cpu;
+                details.memory = p.memory;
+                updated = true;
             }
             self.last_processes = now;
         }
@@ -157,7 +156,7 @@ impl App {
     fn sort_processes(list: &mut [ProcessInfo], sort_by: SortBy) {
         match sort_by {
             SortBy::Cpu => list.sort_by(|a, b| b.cpu.total_cmp(&a.cpu)),
-            SortBy::Memory => list.sort_by(|a, b| b.memory.cmp(&a.memory)),
+            SortBy::Memory => list.sort_by_key(|p| std::cmp::Reverse(p.memory)),
             SortBy::Pid => list.sort_by_key(|p| p.pid),
             SortBy::Name => list.sort_by(|a, b| a.name.cmp(&b.name)),
         }
@@ -188,7 +187,13 @@ impl App {
 
     fn on_key(&mut self, key: crossterm::event::KeyEvent) {
         let in_details = matches!(self.view, View::Details { .. });
-        let in_confirm = matches!(self.view, View::Details { confirm_kill: true, .. });
+        let in_confirm = matches!(
+            self.view,
+            View::Details {
+                confirm_kill: true,
+                ..
+            }
+        );
         if in_confirm {
             self.on_key_confirm(key);
         } else if in_details {

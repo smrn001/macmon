@@ -17,7 +17,10 @@ pub fn bar_row(label: String, ratio: f64, pct_text: String, width: u16) -> Line<
     if bar_width > 0 {
         let mut bar = "█".repeat(filled as usize);
         bar.push_str(&"░".repeat(bar_width.saturating_sub(filled) as usize));
-        spans.push(Span::styled(bar, Style::default().add_modifier(Modifier::DIM)));
+        spans.push(Span::styled(
+            bar,
+            Style::default().add_modifier(Modifier::DIM),
+        ));
         spans.push(Span::raw(" "));
     }
     spans.push(Span::raw(pct_text));

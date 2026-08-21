@@ -2,12 +2,12 @@ use std::ptr;
 
 #[allow(deprecated)]
 use libc::{
-    host_processor_info, mach_host_self, mach_msg_type_number_t, mach_task_self, natural_t,
-    vm_deallocate, vm_size_t, CPU_STATE_IDLE, CPU_STATE_MAX, CPU_STATE_NICE, CPU_STATE_SYSTEM,
-    CPU_STATE_USER, KERN_SUCCESS, PROCESSOR_CPU_LOAD_INFO,
+    CPU_STATE_IDLE, CPU_STATE_MAX, CPU_STATE_NICE, CPU_STATE_SYSTEM, CPU_STATE_USER, KERN_SUCCESS,
+    PROCESSOR_CPU_LOAD_INFO, host_processor_info, mach_host_self, mach_msg_type_number_t,
+    mach_task_self, natural_t, vm_deallocate, vm_size_t,
 };
 
-use crate::models::cpu::{usage, CpuCore, CpuSample, CpuUsage};
+use crate::models::cpu::{CpuCore, CpuSample, CpuUsage, usage};
 
 pub struct CpuSampler {
     previous: Option<CpuSample>,

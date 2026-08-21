@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::ffi::CStr;
 use std::time::Instant;
 
-use libc::{proc_listpids, proc_pidinfo, proc_pidpath, proc_taskallinfo, PROC_PIDTASKALLINFO};
+use libc::{PROC_PIDTASKALLINFO, proc_listpids, proc_pidinfo, proc_pidpath, proc_taskallinfo};
 
 use crate::models::process::{ProcessDetails, ProcessInfo};
 
@@ -43,7 +43,8 @@ impl ProcessSampler {
 
         // Reuse the map's existing capacity instead of reallocating each cycle.
         self.previous.clear();
-        self.previous.extend(procs.iter().map(|p| (p.pid, p.cpu_time)));
+        self.previous
+            .extend(procs.iter().map(|p| (p.pid, p.cpu_time)));
         self.last_sample = Some(now);
         Some(procs)
     }
@@ -111,9 +112,8 @@ fn process_info(pid: i32) -> Option<ProcessInfo> {
 }
 
 fn bytes_to_string(bytes: &[libc::c_char]) -> String {
-    let raw: &[u8] = unsafe {
-        std::slice::from_raw_parts(bytes.as_ptr() as *const u8, bytes.len())
-    };
+    let raw: &[u8] =
+        unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const u8, bytes.len()) };
     let end = raw.iter().position(|&b| b == 0).unwrap_or(raw.len());
     String::from_utf8_lossy(&raw[..end]).into_owned()
 }
@@ -236,7 +236,11 @@ mod tests {
         if let (Some(a), Some(b)) = (first, second) {
             let delta = b.cpu_time.saturating_sub(a.cpu_time);
             println!("delta cpu_time = {delta} ns, cpu% = {:.1}", b.cpu);
-            assert!(b.cpu > 1.0, "expected measurable CPU usage, got {:.1}%", b.cpu);
+            assert!(
+                b.cpu > 1.0,
+                "expected measurable CPU usage, got {:.1}%",
+                b.cpu
+            );
         }
     }
 }

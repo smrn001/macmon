@@ -3,7 +3,7 @@ use std::ptr;
 
 #[allow(deprecated)]
 use libc::{
-    sysctlbyname, vm_statistics64, xsw_usage, HOST_VM_INFO64, HOST_VM_INFO64_COUNT, KERN_SUCCESS,
+    HOST_VM_INFO64, HOST_VM_INFO64_COUNT, KERN_SUCCESS, sysctlbyname, vm_statistics64, xsw_usage,
 };
 
 use crate::models::memory::MemoryInfo;
@@ -11,7 +11,7 @@ use crate::models::memory::MemoryInfo;
 pub fn sample() -> Option<MemoryInfo> {
     let physical = physical_memory()?;
     let stats = vm_stats()?;
-    let page_size = stats.0 as u64;
+    let page_size = stats.0;
     let s = &stats.1;
 
     let swap = swap_usage().unwrap_or(unsafe { std::mem::zeroed::<xsw_usage>() });

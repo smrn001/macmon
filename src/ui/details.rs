@@ -1,8 +1,8 @@
+use ratatui::Frame;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Clear, Paragraph};
-use ratatui::Frame;
 
 use super::format::bytes;
 use crate::models::process::ProcessDetails;
@@ -23,7 +23,10 @@ pub fn render(frame: &mut Frame, area: Rect, details: &ProcessDetails) {
         row("Threads", details.threads.to_string()),
         row("State", state_str(details.state).to_string()),
         Line::from(""),
-        Line::from(Span::styled(" Executable", Style::default().add_modifier(Modifier::BOLD))),
+        Line::from(Span::styled(
+            " Executable",
+            Style::default().add_modifier(Modifier::BOLD),
+        )),
         Line::from(Span::raw(format!(" {executable}"))),
     ];
     let paragraph = Paragraph::new(rows).block(Block::bordered().title(" PROCESS "));

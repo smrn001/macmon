@@ -1,8 +1,8 @@
+use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Layout as RatatuiLayout, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::Span;
 use ratatui::widgets::{Block, Paragraph};
-use ratatui::Frame;
 
 use crate::app::{App, View};
 
@@ -48,18 +48,13 @@ fn render_body(frame: &mut Frame, area: Rect, app: &App) {
         RatatuiLayout::vertical([Constraint::Percentage(48), Constraint::Percentage(52)])
             .areas(area);
     let [top, bottom] =
-        RatatuiLayout::vertical([Constraint::Ratio(1, 2), Constraint::Ratio(1, 2)])
-            .areas(panels);
-    let [cpu, memory] = RatatuiLayout::horizontal([
-        Constraint::Percentage(55),
-        Constraint::Percentage(45),
-    ])
-    .areas(top);
-    let [network, disk] = RatatuiLayout::horizontal([
-        Constraint::Percentage(55),
-        Constraint::Percentage(45),
-    ])
-    .areas(bottom);
+        RatatuiLayout::vertical([Constraint::Ratio(1, 2), Constraint::Ratio(1, 2)]).areas(panels);
+    let [cpu, memory] =
+        RatatuiLayout::horizontal([Constraint::Percentage(55), Constraint::Percentage(45)])
+            .areas(top);
+    let [network, disk] =
+        RatatuiLayout::horizontal([Constraint::Percentage(55), Constraint::Percentage(45)])
+            .areas(bottom);
 
     match &app.cpu_usage {
         Some(usage) => frame.render_widget(cpu::CpuPanel::new(usage), cpu),

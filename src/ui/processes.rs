@@ -1,7 +1,7 @@
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Modifier, Style};
 use ratatui::widgets::{Block, Cell, Row, Table, TableState};
-use ratatui::Frame;
 
 use super::format::bytes;
 use crate::models::process::ProcessInfo;
